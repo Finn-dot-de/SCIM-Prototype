@@ -7,10 +7,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import scim.bamf.in.bund.de.spring.and.scim.springandscim.Service.ScimUserService;
 
+@Slf4j
 @RestController
 @RequestMapping(value = "/scim/v2/Users", produces = "application/scim+json")
 @Tag(name = "SCIM 2.0 User Provisioning", description = "SCIM User Prototype")
@@ -30,6 +32,7 @@ public class ScimUserController {
             @ApiResponse(responseCode = "400", description = "Ungültiges Format")
     })
     public ResponseEntity<UserResource> createUser(@RequestBody UserResource incomingUser) {
+
         UserResource createdUser = scimUserService.createUser(incomingUser);
 
         return ResponseEntity

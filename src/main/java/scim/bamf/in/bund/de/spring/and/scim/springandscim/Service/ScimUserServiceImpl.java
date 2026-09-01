@@ -26,6 +26,7 @@ public class ScimUserServiceImpl implements ScimUserService {
     @Override
     public UserResource createUser(UserResource incomingUser) {
         log.info("Verarbeite SCIM User-Erstellung für: {}", incomingUser.getUserName());
+        log.info("Hier >>>>>>> {}", incomingUser);
 
         String newId = UUID.randomUUID().toString();
         String primaryEmail = extractPrimaryEmail(incomingUser);

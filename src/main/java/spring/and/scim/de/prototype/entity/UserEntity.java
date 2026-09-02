@@ -1,4 +1,4 @@
-package scim.bamf.in.bund.de.spring.and.scim.springandscim.entity;
+package spring.and.scim.de.prototype.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -6,6 +6,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "scim_users")
@@ -18,16 +20,17 @@ public class UserEntity {
 
     @Column(unique = true, nullable = false)
     private String userName;
+    
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private String scimData;
 
-    private String primaryEmail;
-
-    public UserEntity(String newId, String userName, String primaryEmail) {
+    public UserEntity(String newId, String userName, String scimData) {
         this.id = newId;
         this.userName = userName;
-        this.primaryEmail = primaryEmail;
+        this.scimData = scimData;
     }
 
     public UserEntity() {
-
     }
 }

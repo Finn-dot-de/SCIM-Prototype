@@ -1,8 +1,8 @@
-package scim.bamf.in.bund.de.spring.and.scim.springandscim.repository;
+package spring.and.scim.de.prototype.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-import scim.bamf.in.bund.de.spring.and.scim.springandscim.entity.UserEntity;
+import spring.and.scim.de.prototype.entity.UserEntity;
 
 @Repository
 public interface UserRepository extends JpaRepository<UserEntity, String> {

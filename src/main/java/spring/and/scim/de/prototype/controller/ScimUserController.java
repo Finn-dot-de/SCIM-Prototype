@@ -1,5 +1,6 @@
-package scim.bamf.in.bund.de.spring.and.scim.springandscim.controller;
+package spring.and.scim.de.prototype.controller;
 
+import com.unboundid.scim2.common.messages.PatchRequest;
 import com.unboundid.scim2.common.types.UserResource;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -10,7 +11,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import scim.bamf.in.bund.de.spring.and.scim.springandscim.Service.ScimUserService;
+import spring.and.scim.de.prototype.Service.ScimUserService;
+import spring.and.scim.de.prototype.advise.UserNotFoundException;
 
 @Slf4j
 @RestController
@@ -48,6 +50,24 @@ public class ScimUserController {
     })
     public ResponseEntity<UserResource> getUser(@PathVariable String id) {
         return scimUserService.getUser(id)
+                .map(ResponseEntity::ok)
+                .orElseThrow(() -> new UserNotFoundException("Der User mit der ID " + id + " existiert nicht."));
+    }
+
+    @PatchMapping(value = "/{id}", consumes = "application/scim+json")
+    @Operation(summary = "Benutzer aktualisieren", description = "Führt partielle Updates (z.B. nur Name oder Status) aus.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Update erfolgreich"),
+            @ApiResponse(responseCode = "404", description = "User nicht gefunden"),
+            @ApiResponse(responseCode = "400", description = "Fehlerhafte Patch-Syntax")
+    })
+    public ResponseEntity<UserResource> patchUser(
+            @PathVariable String id,
+            @RequestBody PatchRequest patchRequest) {
+
+        log.info("Eingehender PATCH-Request für User ID: {}", id);
+
+        return scimUserService.patchUser(id, patchRequest)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }

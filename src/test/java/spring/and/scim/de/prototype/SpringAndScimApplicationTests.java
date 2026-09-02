@@ -1,4 +1,4 @@
-package scim.bamf.in.bund.de.spring.and.scim.springandscim;
+package spring.and.scim.de.prototype;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

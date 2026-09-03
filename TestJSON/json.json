@@ -1,0 +1,90 @@
+{
+  "id": "079886b7-bb44-4485-b073-24ba48673e71",
+  "ims": [
+    {
+      "type": "slack",
+      "value": "johndoe_slack",
+      "display": "Slack",
+      "primary": true
+    }
+  ],
+  "meta": {
+    "created": "2026-09-03T09:49:06.047+02:00",
+    "location": "http://localhost:8080/scim/v2/Users/079886b7-bb44-4485-b073-24ba48673e71",
+    "lastModified": "2026-09-03T11:40:36.423+02:00",
+    "resourceType": "User"
+  },
+  "name": {
+    "formatted": "John Doe",
+    "givenName": "John",
+    "familyName": "Doe"
+  },
+  "roles": [
+    {
+      "type": "technical",
+      "value": "developer",
+      "display": "Developer Role",
+      "primary": true
+    }
+  ],
+  "title": "Software Engineer",
+  "active": true,
+  "emails": [
+    {
+      "type": "work",
+      "value": "johndoe@example.com",
+      "display": "Arbeit",
+      "primary": true
+    }
+  ],
+  "groups": [],
+  "locale": "de_DE",
+  "photos": [
+    {
+      "type": "photo",
+      "value": "https://example.com",
+      "display": "Profilbild",
+      "primary": true
+    }
+  ],
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:User"
+  ],
+  "nickName": "Johnny",
+  "timezone": "Europe/Berlin",
+  "userName": "johndoe@example.com",
+  "userType": "Employee",
+  "addresses": [
+    {
+      "type": "work",
+      "region": "NRW",
+      "country": "Germany",
+      "primary": true,
+      "locality": "Bonn",
+      "formatted": "Musterstraße 1\n53111 Bonn\nGermany",
+      "postalCode": "53111",
+      "streetAddress": "Musterstraße 1"
+    }
+  ],
+  "externalId": "ext-usr-98765",
+  "profileUrl": "https://example.com",
+  "displayName": "John Doe",
+  "entitlements": [
+    {
+      "type": "license",
+      "value": "premium_tier",
+      "display": "Premium Access",
+      "primary": true
+    }
+  ],
+  "phoneNumbers": [
+    {
+      "type": "mobile",
+      "value": "+49-123-456789",
+      "display": "Mobil",
+      "primary": true
+    }
+  ],
+  "x509Certificates": [],
+  "preferredLanguage": "de-DE"
+}

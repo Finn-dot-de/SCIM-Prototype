@@ -1,0 +1,83 @@
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:User"
+  ],
+  "externalId": "ext-usr-98765",
+  "userName": "johndoe@example.com",
+  "name": {
+    "formatted": "John Doe",
+    "familyName": "Doe",
+    "givenName": "John"
+  },
+  "displayName": "John Doe",
+  "nickName": "Johnny",
+  "profileUrl": "https://example.com",
+  "title": "Software Engineer",
+  "userType": "Employee",
+  "preferredLanguage": "de-DE",
+  "locale": "de_DE",
+  "timezone": "Europe/Berlin",
+  "active": true,
+  "emails": [
+    {
+      "value": "johndoe@example.com",
+      "display": "Arbeit",
+      "type": "work",
+      "primary": true
+    }
+  ],
+  "phoneNumbers": [
+    {
+      "value": "+49-123-456789",
+      "display": "Mobil",
+      "type": "mobile",
+      "primary": true
+    }
+  ],
+  "ims": [
+    {
+      "value": "johndoe_slack",
+      "display": "Slack",
+      "type": "slack",
+      "primary": true
+    }
+  ],
+  "photos": [
+    {
+      "value": "https://example.com",
+      "display": "Profilbild",
+      "type": "photo",
+      "primary": true
+    }
+  ],
+  "addresses": [
+    {
+      "formatted": "Musterstraße 1\n53111 Bonn\nGermany",
+      "streetAddress": "Musterstraße 1",
+      "locality": "Bonn",
+      "region": "NRW",
+      "postalCode": "53111",
+      "country": "Germany",
+      "type": "work",
+      "primary": true
+    }
+  ],
+  "groups": [],
+  "entitlements": [
+    {
+      "value": "premium_tier",
+      "display": "Premium Access",
+      "type": "license",
+      "primary": true
+    }
+  ],
+  "roles": [
+    {
+      "value": "developer",
+      "display": "Developer Role",
+      "type": "technical",
+      "primary": true
+    }
+  ],
+  "x509Certificates": []
+}

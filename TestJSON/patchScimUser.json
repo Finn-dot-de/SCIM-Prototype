@@ -1,0 +1,43 @@
+{
+  "schemas": [
+    "urn:ietf:params:scim:api:messages:2.0:PatchOp"
+  ],
+  "Operations": [
+    {
+      "op": "replace",
+      "path": "title",
+      "value": "Senior Software Engineer"
+    },
+    {
+      "op": "replace",
+      "path": "name.givenName",
+      "value": "Jonathan"
+    },
+    {
+      "op": "add",
+      "path": "emails",
+      "value": [
+        {
+          "value": "johny.private@example.com",
+          "display": "Privat",
+          "type": "home",
+          "primary": false
+        }
+      ]
+    },
+    {
+      "op": "remove",
+      "path": "ims[type eq \"slack\"]"
+    },
+    {
+      "op": "replace",
+      "path": "active",
+      "value": false
+    },
+    {
+      "op": "add",
+      "path": "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:country",
+      "value": "India"
+    }
+  ]
+}

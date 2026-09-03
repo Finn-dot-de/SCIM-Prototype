@@ -1,20 +1,25 @@
 package spring.and.scim.de.prototype.Service;
 
+import com.unboundid.scim2.common.filters.Filter;
 import com.unboundid.scim2.common.messages.PatchOpType;
 import com.unboundid.scim2.common.messages.PatchOperation;
 import com.unboundid.scim2.common.messages.PatchRequest;
 import com.unboundid.scim2.common.types.Meta;
+import com.unboundid.scim2.common.types.Name;
 import com.unboundid.scim2.common.types.UserResource;
 import com.unboundid.scim2.common.utils.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import spring.and.scim.de.prototype.entity.UserEntity;
 import spring.and.scim.de.prototype.repository.UserRepository;
 
 import java.net.URI;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -82,7 +87,7 @@ public class ScimUserServiceImpl implements ScimUserService {
                 if (op.getOpType() == PatchOpType.REPLACE && pathString.equals("name.givenName")) {
                     String newGivenName = op.getJsonNode().asString();
                     if (scimUser.getName() == null) {
-                        scimUser.setName(new com.unboundid.scim2.common.types.Name());
+                        scimUser.setName(new Name());
                     }
                     scimUser.getName().setGivenName(newGivenName);
                 }
@@ -105,4 +110,17 @@ public class ScimUserServiceImpl implements ScimUserService {
             return scimUser;
         });
     }
+
+    @Override
+    public List<UserResource> filterUsers(Filter filter) {
+
+        Specification<UserEntity> spec = createSpecification(filter);
+
+        List<UserEntity> userEntities = userRepository.findAll(spec);
+
+        return userEntities.stream()
+                .map(this::mapToUserResource)
+                .collect(Collectors.toList());
+    }
+
 }

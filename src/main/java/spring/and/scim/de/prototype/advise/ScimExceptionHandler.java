@@ -41,7 +41,7 @@ public class ScimExceptionHandler {
     public ResponseEntity<ErrorResponse> handleInternalError(Exception e) {
 
         ErrorResponse scimError = new ErrorResponse(500);
-        scimError.setDetail("Interner Serverfehler im SCIM Hub: " + e.getMessage());
+        scimError.setDetail("Interner Serverfehler im SCIM: " + e.getMessage());
 
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)

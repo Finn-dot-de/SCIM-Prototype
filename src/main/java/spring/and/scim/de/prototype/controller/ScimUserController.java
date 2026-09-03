@@ -1,5 +1,8 @@
 package spring.and.scim.de.prototype.controller;
 
+import com.unboundid.scim2.common.exceptions.BadRequestException;
+import com.unboundid.scim2.common.filters.Filter;
+import com.unboundid.scim2.common.messages.ListResponse;
 import com.unboundid.scim2.common.messages.PatchRequest;
 import com.unboundid.scim2.common.types.UserResource;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,6 +16,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import spring.and.scim.de.prototype.Service.ScimUserService;
 import spring.and.scim.de.prototype.advise.UserNotFoundException;
+
+import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @RestController
@@ -63,6 +69,9 @@ public class ScimUserController {
     })
     public ResponseEntity<UserResource> patchUser(
             @PathVariable String id,
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    content = @Content(schema = @Schema(implementation = Object.class))
+            )
             @RequestBody PatchRequest patchRequest) {
 
         log.info("Eingehender PATCH-Request für User ID: {}", id);
@@ -71,4 +80,21 @@ public class ScimUserController {
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
+
+    @GetMapping()
+    public ResponseEntity<ListResponse<UserResource>> searchUsers(
+            @RequestParam(value = "filter", required = false) String filterString) throws BadRequestException {
+
+        List<UserResource> users;
+
+        if (filterString != null && !filterString.isEmpty()) {
+            Filter filter = Filter.fromString(filterString);
+            users = scimUserService.filterUsers(filter);
+        } else {
+            users = scimUserService.filterUsers(null);
+        }
+
+        return ResponseEntity.ok(new ListResponse<>(users));
+    }
+
 }

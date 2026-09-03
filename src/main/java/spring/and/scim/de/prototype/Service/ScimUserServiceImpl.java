@@ -1,18 +1,22 @@
 package spring.and.scim.de.prototype.Service;
 
+import com.unboundid.scim2.common.exceptions.BadRequestException;
+import com.unboundid.scim2.common.exceptions.ScimException;
 import com.unboundid.scim2.common.filters.Filter;
+import com.unboundid.scim2.common.messages.ListResponse;
 import com.unboundid.scim2.common.messages.PatchOpType;
 import com.unboundid.scim2.common.messages.PatchOperation;
 import com.unboundid.scim2.common.messages.PatchRequest;
 import com.unboundid.scim2.common.types.Meta;
 import com.unboundid.scim2.common.types.Name;
 import com.unboundid.scim2.common.types.UserResource;
+import com.unboundid.scim2.common.utils.FilterEvaluator;
 import com.unboundid.scim2.common.utils.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import spring.and.scim.de.prototype.entity.UserEntity;
 import spring.and.scim.de.prototype.repository.UserRepository;
+import tools.jackson.databind.JsonNode;
 
 import java.net.URI;
 import java.util.Calendar;
@@ -112,15 +116,53 @@ public class ScimUserServiceImpl implements ScimUserService {
     }
 
     @Override
-    public List<UserResource> filterUsers(Filter filter) {
+    public ListResponse<UserResource> searchUsers(String filterString, int startIndex, int count) {
 
-        Specification<UserEntity> spec = createSpecification(filter);
+        List<UserEntity> allDbUsers = userRepository.findAll();
+        List<UserResource> matchedUsers;
 
-        List<UserEntity> userEntities = userRepository.findAll(spec);
+        if (filterString == null || filterString.isBlank()) {
+            matchedUsers = allDbUsers.stream()
+                    .map(this::mapToUserResource)
+                    .collect(Collectors.toList());
+        }
 
-        return userEntities.stream()
-                .map(this::mapToUserResource)
-                .collect(Collectors.toList());
+        else {
+            try {
+                Filter scimFilter = Filter.fromString(filterString);
+                FilterEvaluator evaluator = new FilterEvaluator();
+
+                matchedUsers = allDbUsers.stream()
+                        .filter(dbUser -> {
+                            try {
+                                JsonNode userNode = JsonUtils.getObjectReader().readTree(dbUser.getScimData());
+
+                                return scimFilter.visit(evaluator, userNode);
+                            } catch (ScimException e) {
+                                return false;
+                            }
+                        })
+                        .map(this::mapToUserResource)
+                        .collect(Collectors.toList());
+
+            } catch (BadRequestException e) {
+                throw new IllegalStateException("Ungültiger SCIM-Filter: " + e.getMessage());
+            }
+        }
+
+        int fromIndex = Math.max(0, startIndex - 1);
+        int toIndex = Math.min(matchedUsers.size(), fromIndex + count);
+
+        List<UserResource> pagedResults = (fromIndex <= matchedUsers.size())
+                ? matchedUsers.subList(fromIndex, toIndex)
+                : List.of();
+
+        return new ListResponse<>(
+                matchedUsers.size(),
+                pagedResults,
+                startIndex,
+                count
+        );
     }
 
 }

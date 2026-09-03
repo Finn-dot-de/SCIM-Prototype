@@ -81,20 +81,17 @@ public class ScimUserController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @GetMapping()
+    @GetMapping
+    @Operation(summary = "Benutzer suchen & filtern", description = "SCIM-Filter")
     public ResponseEntity<ListResponse<UserResource>> searchUsers(
-            @RequestParam(value = "filter", required = false) String filterString) throws BadRequestException {
+            @RequestParam(required = false) String filter,
+            @RequestParam(required = false, defaultValue = "1") int startIndex,
+            @RequestParam(required = false, defaultValue = "100") int count) {
 
-        List<UserResource> users;
+        log.info("Suche Users. Filter: '{}', Start: {}, Count: {}", filter, startIndex, count);
 
-        if (filterString != null && !filterString.isEmpty()) {
-            Filter filter = Filter.fromString(filterString);
-            users = scimUserService.filterUsers(filter);
-        } else {
-            users = scimUserService.filterUsers(null);
-        }
-
-        return ResponseEntity.ok(new ListResponse<>(users));
+        ListResponse<UserResource> response = scimUserService.searchUsers(filter, startIndex, count);
+        return ResponseEntity.ok(response);
     }
 
 }

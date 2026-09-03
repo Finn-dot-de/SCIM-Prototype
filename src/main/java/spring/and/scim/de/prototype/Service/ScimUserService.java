@@ -1,6 +1,7 @@
 package spring.and.scim.de.prototype.Service;
 
 import com.unboundid.scim2.common.filters.Filter;
+import com.unboundid.scim2.common.messages.ListResponse;
 import com.unboundid.scim2.common.messages.PatchRequest;
 import com.unboundid.scim2.common.types.UserResource;
 
@@ -15,5 +16,5 @@ public interface ScimUserService {
 
     Optional<UserResource> patchUser(String email, PatchRequest patchRequest);
 
-    List<UserResource> filterUsers(Filter filter);
+    ListResponse<UserResource> searchUsers(String filterString, int startIndex, int count);
 }

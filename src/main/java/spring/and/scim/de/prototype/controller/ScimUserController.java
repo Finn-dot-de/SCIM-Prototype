@@ -1,7 +1,5 @@
 package spring.and.scim.de.prototype.controller;
 
-import com.unboundid.scim2.common.exceptions.BadRequestException;
-import com.unboundid.scim2.common.filters.Filter;
 import com.unboundid.scim2.common.messages.ListResponse;
 import com.unboundid.scim2.common.messages.PatchRequest;
 import com.unboundid.scim2.common.types.UserResource;
@@ -14,11 +12,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import spring.and.scim.de.prototype.Service.ScimUserService;
+import spring.and.scim.de.prototype.service.ScimUserService;
 import spring.and.scim.de.prototype.advise.UserNotFoundException;
-
-import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 @RestController

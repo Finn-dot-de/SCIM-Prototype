@@ -1,0 +1,20 @@
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:Group"
+  ],
+  "displayName": "Software Engineers",
+  "members": [
+    {
+      "value": "079886b7-bb44-4485-b073-24ba48673e71",
+      "display": "John Doe (johndoe@example.com)",
+      "type": "User",
+      "$ref": "http://localhost:8080/scim/v2/Users/079886b7-bb44-4485-b073-24ba48673e71"
+    },
+    {
+      "value": "92044451-f03f-4bd1-a45f-14063889d181",
+      "display": "John Doe (john.doe@example.com)",
+      "type": "User",
+      "$ref": "http://localhost:8080/scim/v2/Users/92044451-f03f-4bd1-a45f-14063889d181"
+    }
+  ]
+}

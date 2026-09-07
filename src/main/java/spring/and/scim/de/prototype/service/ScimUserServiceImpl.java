@@ -1,4 +1,4 @@
-package spring.and.scim.de.prototype.Service;
+package spring.and.scim.de.prototype.service;
 
 import com.unboundid.scim2.common.exceptions.BadRequestException;
 import com.unboundid.scim2.common.exceptions.ScimException;

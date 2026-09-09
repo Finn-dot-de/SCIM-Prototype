@@ -78,10 +78,6 @@ public class ScimGroupServiceImpl implements ScimGroupService {
         });
     }
 
-    /**
-     * Liefert die Gruppen-Referenzen für das readOnly-Attribut "groups" eines Users.
-     * Wird vom ScimUserService beim Lesen eines Users aufgerufen – kein Sync nötig.
-     */
     @Override
     public List<Group> findGroupRefsForUser(String userId) {
         return groupRepository.findAll().stream()

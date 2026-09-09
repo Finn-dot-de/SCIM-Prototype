@@ -1,9 +1,11 @@
 package spring.and.scim.de.prototype.service;
 
 import com.unboundid.scim2.common.messages.PatchRequest;
+import com.unboundid.scim2.common.types.Group;
 import com.unboundid.scim2.common.types.GroupResource;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface ScimGroupService {
@@ -15,5 +17,5 @@ public interface ScimGroupService {
     @Transactional
     Optional<GroupResource> patchGroup(String groupId, PatchRequest patchRequest);
 
-    void updateUserWithNewGroup(String userId, GroupResource scimGroup, boolean remove);
+    List<Group> findGroupRefsForUser(String userId);
 }

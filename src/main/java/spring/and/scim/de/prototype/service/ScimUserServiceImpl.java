@@ -4,11 +4,9 @@ import com.unboundid.scim2.common.exceptions.BadRequestException;
 import com.unboundid.scim2.common.exceptions.ScimException;
 import com.unboundid.scim2.common.filters.Filter;
 import com.unboundid.scim2.common.messages.ListResponse;
-import com.unboundid.scim2.common.messages.PatchOpType;
 import com.unboundid.scim2.common.messages.PatchOperation;
 import com.unboundid.scim2.common.messages.PatchRequest;
 import com.unboundid.scim2.common.types.Meta;
-import com.unboundid.scim2.common.types.Name;
 import com.unboundid.scim2.common.types.UserResource;
 import com.unboundid.scim2.common.utils.FilterEvaluator;
 import com.unboundid.scim2.common.utils.JsonUtils;
@@ -17,6 +15,7 @@ import org.springframework.stereotype.Service;
 import spring.and.scim.de.prototype.entity.UserEntity;
 import spring.and.scim.de.prototype.repository.UserRepository;
 import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.net.URI;
 import java.util.Calendar;
@@ -72,67 +71,6 @@ public class ScimUserServiceImpl implements ScimUserService {
                 .readValue(dbUser.getScimData());
     }
 
-@Override
-public Optional<UserResource> patchUser(String id, PatchRequest patchRequest) {
-    return userRepository.findById(id).map(dbUser -> {
-        try {
-            ObjectNode node = (ObjectNode) JsonUtils.getObjectReader()
-                    .readTree(dbUser.getScimData());
-
-            for (PatchOperation op : patchRequest.getOperations()) {
-                op.apply(node);
-            }
-
-            UserResource scimUser = JsonUtils.nodeToValue(node, UserResource.class);
-            scimUser.getMeta().setLastModified(Calendar.getInstance());
-
-            dbUser.setScimData(JsonUtils.getObjectWriter().writeValueAsString(scimUser));
-            userRepository.save(dbUser);
-            return scimUser;
-        } catch (ScimException e) {
-            throw new IllegalArgumentException("Ungültiger Patch: " + e.getMessage(), e);
-        }
-    });
-}
-            for (PatchOperation op : patchRequest.getOperations()) {
-                log.info("Patch Operation: {} auf Pfad: {}", op.getOpType(), op.getPath());
-
-                String pathString = op.getPath().toString();
-
-                if (op.getOpType() == PatchOpType.REPLACE) {
-                    switch (pathString) {
-                        case "active":
-                            boolean isActive = op.getJsonNode().asBoolean();
-                            scimUser.setActive(isActive);
-                        case "name.givenName":
-                            String newGivenName = op.getJsonNode().asString();
-                            if (scimUser.getName() == null || newGivenName == null) {
-                                scimUser.setName(new Name());
-                            }
-                            scimUser.getName().setGivenName(newGivenName);
-
-                    }
-                }
-
-            }
-
-            scimUser.getMeta().setLastModified(Calendar.getInstance());
-
-            try {
-                String updatedJson = JsonUtils.getObjectWriter().writeValueAsString(scimUser);
-
-                dbUser.setScimData(updatedJson);
-                userRepository.save(dbUser);
-
-            } catch (Exception e) {
-                log.error("Fehler beim Speichern des gepatchten Users", e);
-                throw new RuntimeException("Patch fehlgeschlagen", e);
-            }
-
-            return scimUser;
-        });
-    }
-
     @Override
     public ListResponse<UserResource> searchUsers(String filterString, int startIndex, int count) {
 
@@ -143,9 +81,7 @@ public Optional<UserResource> patchUser(String id, PatchRequest patchRequest) {
             matchedUsers = allDbUsers.stream()
                     .map(this::mapToUserResource)
                     .collect(Collectors.toList());
-        }
-
-        else {
+        } else {
             try {
                 Filter scimFilter = Filter.fromString(filterString);
                 FilterEvaluator evaluator = new FilterEvaluator();
@@ -183,27 +119,28 @@ public Optional<UserResource> patchUser(String id, PatchRequest patchRequest) {
         );
     }
 
-}
+    @Override
+    public Optional<UserResource> patchUser(String id, PatchRequest patchRequest) {
+        return userRepository.findById(id).map(dbUser -> {
+            try {
+                ObjectNode node = (ObjectNode) JsonUtils.getObjectReader()
+                        .readTree(dbUser.getScimData());
 
-@Override
-public Optional<UserResource> patchUser(String id, PatchRequest patchRequest) {
-    return userRepository.findById(id).map(dbUser -> {
-        try {
-            ObjectNode node = (ObjectNode) JsonUtils.getObjectReader()
-                    .readTree(dbUser.getScimData());
+                for (PatchOperation op : patchRequest.getOperations()) {
+                    op.apply(node);
+                }
 
-            for (PatchOperation op : patchRequest.getOperations()) {
-                op.apply(node);
+                UserResource scimUser = JsonUtils.nodeToValue(node, UserResource.class);
+                scimUser.getMeta().setLastModified(Calendar.getInstance());
+
+                dbUser.setScimData(JsonUtils.getObjectWriter().writeValueAsString(scimUser));
+                userRepository.save(dbUser);
+                return scimUser;
+            } catch (ScimException e) {
+                throw new IllegalArgumentException("Ungültiger Patch: " + e.getMessage(), e);
             }
+        });
+    }
 
-            UserResource scimUser = JsonUtils.nodeToValue(node, UserResource.class);
-            scimUser.getMeta().setLastModified(Calendar.getInstance());
-
-            dbUser.setScimData(JsonUtils.getObjectWriter().writeValueAsString(scimUser));
-            userRepository.save(dbUser);
-            return scimUser;
-        } catch (ScimException e) {
-            throw new IllegalArgumentException("Ungültiger Patch: " + e.getMessage(), e);
-        }
-    });
 }
+

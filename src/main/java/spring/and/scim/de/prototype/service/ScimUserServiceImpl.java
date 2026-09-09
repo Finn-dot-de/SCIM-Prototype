@@ -72,12 +72,28 @@ public class ScimUserServiceImpl implements ScimUserService {
                 .readValue(dbUser.getScimData());
     }
 
-    @Override
-    public Optional<UserResource> patchUser(String id, PatchRequest patchRequest) {
-        return userRepository.findById(id).map(dbUser -> {
+@Override
+public Optional<UserResource> patchUser(String id, PatchRequest patchRequest) {
+    return userRepository.findById(id).map(dbUser -> {
+        try {
+            ObjectNode node = (ObjectNode) JsonUtils.getObjectReader()
+                    .readTree(dbUser.getScimData());
 
-            UserResource scimUser = mapToUserResource(dbUser);
+            for (PatchOperation op : patchRequest.getOperations()) {
+                op.apply(node);
+            }
 
+            UserResource scimUser = JsonUtils.nodeToValue(node, UserResource.class);
+            scimUser.getMeta().setLastModified(Calendar.getInstance());
+
+            dbUser.setScimData(JsonUtils.getObjectWriter().writeValueAsString(scimUser));
+            userRepository.save(dbUser);
+            return scimUser;
+        } catch (ScimException e) {
+            throw new IllegalArgumentException("Ungültiger Patch: " + e.getMessage(), e);
+        }
+    });
+}
             for (PatchOperation op : patchRequest.getOperations()) {
                 log.info("Patch Operation: {} auf Pfad: {}", op.getOpType(), op.getPath());
 
@@ -167,4 +183,27 @@ public class ScimUserServiceImpl implements ScimUserService {
         );
     }
 
+}
+
+@Override
+public Optional<UserResource> patchUser(String id, PatchRequest patchRequest) {
+    return userRepository.findById(id).map(dbUser -> {
+        try {
+            ObjectNode node = (ObjectNode) JsonUtils.getObjectReader()
+                    .readTree(dbUser.getScimData());
+
+            for (PatchOperation op : patchRequest.getOperations()) {
+                op.apply(node);
+            }
+
+            UserResource scimUser = JsonUtils.nodeToValue(node, UserResource.class);
+            scimUser.getMeta().setLastModified(Calendar.getInstance());
+
+            dbUser.setScimData(JsonUtils.getObjectWriter().writeValueAsString(scimUser));
+            userRepository.save(dbUser);
+            return scimUser;
+        } catch (ScimException e) {
+            throw new IllegalArgumentException("Ungültiger Patch: " + e.getMessage(), e);
+        }
+    });
 }

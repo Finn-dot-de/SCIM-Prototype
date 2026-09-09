@@ -83,17 +83,19 @@ public class ScimUserServiceImpl implements ScimUserService {
 
                 String pathString = op.getPath().toString();
 
-                if (op.getOpType() == PatchOpType.REPLACE && pathString.equals("active")) {
-                    boolean isActive = op.getJsonNode().asBoolean();
-                    scimUser.setActive(isActive);
-                }
+                if (op.getOpType() == PatchOpType.REPLACE) {
+                    switch (pathString) {
+                        case "active":
+                            boolean isActive = op.getJsonNode().asBoolean();
+                            scimUser.setActive(isActive);
+                        case "name.givenName":
+                            String newGivenName = op.getJsonNode().asString();
+                            if (scimUser.getName() == null || newGivenName == null) {
+                                scimUser.setName(new Name());
+                            }
+                            scimUser.getName().setGivenName(newGivenName);
 
-                if (op.getOpType() == PatchOpType.REPLACE && pathString.equals("name.givenName")) {
-                    String newGivenName = op.getJsonNode().asString();
-                    if (scimUser.getName() == null) {
-                        scimUser.setName(new Name());
                     }
-                    scimUser.getName().setGivenName(newGivenName);
                 }
 
             }

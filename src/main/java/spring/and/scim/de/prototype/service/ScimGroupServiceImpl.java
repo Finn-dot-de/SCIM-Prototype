@@ -3,7 +3,6 @@ package spring.and.scim.de.prototype.service;
 import com.unboundid.scim2.common.exceptions.ScimException;
 import com.unboundid.scim2.common.messages.PatchOperation;
 import com.unboundid.scim2.common.messages.PatchRequest;
-import com.unboundid.scim2.common.types.Group;
 import com.unboundid.scim2.common.types.GroupResource;
 import com.unboundid.scim2.common.types.Meta;
 import com.unboundid.scim2.common.utils.JsonUtils;
@@ -15,7 +14,6 @@ import tools.jackson.databind.node.ObjectNode;
 
 import java.net.URI;
 import java.util.Calendar;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -76,19 +74,6 @@ public class ScimGroupServiceImpl implements ScimGroupService {
                 throw new IllegalArgumentException("Ungültiger Patch: " + e.getMessage(), e);
             }
         });
-    }
-
-    @Override
-    public List<Group> findGroupRefsForUser(String userId) {
-        return groupRepository.findAll().stream()
-                .map(this::mapToGroupResource)
-                .filter(g -> g.getMembers() != null && g.getMembers().stream()
-                        .anyMatch(m -> userId.equals(m.getValue())))
-                .map(g -> new Group()
-                        .setValue(g.getId())
-                        .setDisplay(g.getDisplayName())
-                        .setRef(g.getMeta().getLocation()))
-                .toList();
     }
 
     private GroupResource mapToGroupResource(GroupEntity dbGroup) {

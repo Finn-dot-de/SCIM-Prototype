@@ -12,6 +12,7 @@ import com.unboundid.scim2.common.utils.FilterEvaluator;
 import com.unboundid.scim2.common.utils.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import spring.and.scim.de.prototype.entity.UserEntity;
 import spring.and.scim.de.prototype.repository.UserRepository;
 import tools.jackson.databind.JsonNode;
@@ -117,6 +118,13 @@ public class ScimUserServiceImpl implements ScimUserService {
                 startIndex,
                 count
         );
+    }
+
+    @Transactional
+    @Override
+    public void deleteScimUser(String id) {
+        log.info("Delete User with id: {}", id);
+        userRepository.deleteUserEntityById(id);
     }
 
     @Override

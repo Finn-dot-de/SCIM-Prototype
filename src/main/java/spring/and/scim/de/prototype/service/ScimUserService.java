@@ -15,4 +15,6 @@ public interface ScimUserService {
     Optional<UserResource> patchUser(String email, PatchRequest patchRequest);
 
     ListResponse<UserResource> searchUsers(String filterString, int startIndex, int count);
+
+    void deleteScimUser(String id);
 }

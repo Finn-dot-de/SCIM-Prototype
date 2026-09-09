@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.catalina.User;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import spring.and.scim.de.prototype.service.ScimUserService;
@@ -76,8 +77,13 @@ public class ScimUserController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @GetMapping
+    @GetMapping()
     @Operation(summary = "Benutzer suchen & filtern", description = "SCIM-Filter")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "User Filtern erfolgreich"),
+            @ApiResponse(responseCode = "404", description = "User mit Filter nicht gefunden"),
+            @ApiResponse(responseCode = "400", description = "Fehlerhafte Filter-Syntax")
+    })
     public ResponseEntity<ListResponse<UserResource>> searchUsers(
             @RequestParam(required = false) String filter,
             @RequestParam(required = false, defaultValue = "1") int startIndex,
@@ -88,5 +94,22 @@ public class ScimUserController {
         ListResponse<UserResource> response = scimUserService.searchUsers(filter, startIndex, count);
         return ResponseEntity.ok(response);
     }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Benutzer löschen", description = "Löscht einen SCIM-Benutzer anhand seiner ID.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Löschung erfolgreich (Kein Inhalt)"),
+            @ApiResponse(responseCode = "404", description = "Benutzer nicht gefunden"),
+            @ApiResponse(responseCode = "400", description = "Ungültige Anfrage (z. B. fehlerhafte ID-Syntax)")
+    })
+    public ResponseEntity<Void> deleteUser(@PathVariable String id) {
+
+        log.info("SCIM Delete User: {}", id);
+        
+        scimUserService.deleteScimUser(id);
+
+        return ResponseEntity.noContent().build();
+    }
+
 
 }

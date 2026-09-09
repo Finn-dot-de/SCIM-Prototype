@@ -16,6 +16,4 @@ public interface ScimGroupService {
 
     @Transactional
     Optional<GroupResource> patchGroup(String groupId, PatchRequest patchRequest);
-
-    List<Group> findGroupRefsForUser(String userId);
 }

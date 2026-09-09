@@ -1,22 +1,21 @@
 package spring.and.scim.de.prototype.service;
 
-import com.unboundid.scim2.common.messages.PatchOpType;
+import com.unboundid.scim2.common.exceptions.ScimException;
 import com.unboundid.scim2.common.messages.PatchOperation;
 import com.unboundid.scim2.common.messages.PatchRequest;
+import com.unboundid.scim2.common.types.Group;
 import com.unboundid.scim2.common.types.GroupResource;
-import com.unboundid.scim2.common.types.Member;
-import com.unboundid.scim2.common.types.UserResource;
+import com.unboundid.scim2.common.types.Meta;
 import com.unboundid.scim2.common.utils.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import spring.and.scim.de.prototype.entity.GroupEntity;
 import spring.and.scim.de.prototype.repository.GroupRepository;
-import spring.and.scim.de.prototype.repository.UserRepository;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -24,12 +23,12 @@ import java.util.UUID;
 @Service
 public class ScimGroupServiceImpl implements ScimGroupService {
 
-    private final GroupRepository groupRepository;
-    private final UserRepository userRepository;
+    private static final String BASE_URL = "http://localhost:8080/scim/v2/Groups/";
 
-    public ScimGroupServiceImpl(GroupRepository groupRepository, UserRepository userRepository) {
+    private final GroupRepository groupRepository;
+
+    public ScimGroupServiceImpl(GroupRepository groupRepository) {
         this.groupRepository = groupRepository;
-        this.userRepository = userRepository;
     }
 
     @Override
@@ -38,132 +37,81 @@ public class ScimGroupServiceImpl implements ScimGroupService {
 
         String newId = UUID.randomUUID().toString();
         incomingGroup.setId(newId);
+        incomingGroup.setMeta(createMeta(newId));
 
-        com.unboundid.scim2.common.types.Meta meta = new com.unboundid.scim2.common.types.Meta();
-        meta.setResourceType("Group");
-        meta.setCreated(Calendar.getInstance());
-        meta.setLastModified(Calendar.getInstance());
-        meta.setLocation(URI.create("http://localhost:8080/scim/v2/Groups/" + newId));
-        incomingGroup.setMeta(meta);
-
-        try {
-            String scimJson = JsonUtils.getObjectWriter().writeValueAsString(incomingGroup);
-            GroupEntity entity = new GroupEntity(newId, incomingGroup.getDisplayName(), scimJson);
-            groupRepository.save(entity);
-        } catch (Exception e) {
-            log.error("Fehler beim Speichern der Gruppe", e);
-            throw new RuntimeException("Fehler beim Erstellen der Gruppe", e);
-        }
-
+        persist(new GroupEntity(newId, incomingGroup.getDisplayName(), null), incomingGroup);
         return incomingGroup;
     }
 
     @Override
     public Optional<GroupResource> getGroup(String id) {
-        return groupRepository.findById(id).map(dbGroup -> {
-            try {
-                return JsonUtils.getObjectReader()
-                        .forType(GroupResource.class)
-                        .readValue(dbGroup.getScimData());
-            } catch (Exception e) {
-                log.error("Fehler beim Parsen der Gruppe {}", id, e);
-                throw new RuntimeException("Fehler beim Lesen der Gruppe", e);
-            }
-        });
+        return groupRepository.findById(id).map(this::mapToGroupResource);
     }
 
-    @Transactional
     @Override
     public Optional<GroupResource> patchGroup(String groupId, PatchRequest patchRequest) {
         log.info("Verarbeite PATCH-Request für Gruppe ID: {}", groupId);
 
         return groupRepository.findById(groupId).map(dbGroup -> {
             try {
-                GroupResource scimGroup = JsonUtils.getObjectReader()
-                        .forType(GroupResource.class).readValue(dbGroup.getScimData());
+                ObjectNode node = (ObjectNode) JsonUtils.getObjectReader()
+                        .readTree(dbGroup.getScimData());
 
                 for (PatchOperation op : patchRequest.getOperations()) {
-                    String path = op.getPath() != null ? op.getPath().toString() : "";
-
-                    if (op.getOpType() == PatchOpType.ADD && path.equals("members")) {
-                        op.getJsonNode().forEach(memberNode -> {
-                            String userId = memberNode.get("value").asString();
-                            String userDisplay = memberNode.has("display") ? memberNode.get("display").asString() : "";
-
-                            if (scimGroup.getMembers() == null) {
-                                scimGroup.setMembers(new ArrayList<>());
-                            }
-
-                            boolean alreadyMember = scimGroup.getMembers().stream()
-                                    .anyMatch(m -> m.getValue().equals(userId));
-
-                            if (!alreadyMember) {
-                                Member newMember = new Member();
-                                newMember.setValue(userId);
-                                newMember.setDisplay(userDisplay);
-                                scimGroup.getMembers().add(newMember);
-
-                                updateUserWithNewGroup(userId, scimGroup, false);
-                            }
-                        });
-                    }
-
-                    if (op.getOpType() == PatchOpType.REMOVE && path.startsWith("members")) {
-                        if (op.getPath().getElement(0).getValueFilter() != null) {
-                            String userIdToRemove = op.getPath().getElement(0).getValueFilter().getComparisonValue().asString();
-
-                            if (scimGroup.getMembers() != null) {
-                                scimGroup.getMembers().removeIf(m -> m.getValue().equals(userIdToRemove));
-                                updateUserWithNewGroup(userIdToRemove, scimGroup, true);
-                            }
-                        }
-                    }
+                    log.debug("Patch Operation: {} auf Pfad: {}", op.getOpType(), op.getPath());
+                    op.apply(node);
                 }
 
-                scimGroup.getMeta().setLastModified(Calendar.getInstance());
-                dbGroup.setScimData(JsonUtils.getObjectWriter().writeValueAsString(scimGroup));
-                groupRepository.save(dbGroup);
+                GroupResource group = JsonUtils.getObjectReader()
+                        .forType(GroupResource.class)
+                        .readValue(node);
 
-                return scimGroup;
+                group.getMeta().setLastModified(Calendar.getInstance());
+                dbGroup.setDisplayName(group.getDisplayName());
 
-            } catch (Exception e) {
-                log.error("Fehler beim Patchen der Gruppe {}", groupId, e);
-                throw new RuntimeException("Gruppen-Patch fehlgeschlagen", e);
+                persist(dbGroup, group);
+                return group;
+
+            } catch (ScimException e) {
+                throw new IllegalArgumentException("Ungültiger Patch: " + e.getMessage(), e);
             }
         });
     }
 
+    /**
+     * Liefert die Gruppen-Referenzen für das readOnly-Attribut "groups" eines Users.
+     * Wird vom ScimUserService beim Lesen eines Users aufgerufen – kein Sync nötig.
+     */
     @Override
-    public void updateUserWithNewGroup(String userId, GroupResource scimGroup, boolean remove) {
-        userRepository.findById(userId).ifPresent(dbUser -> {
-            try {
-                UserResource scimUser = JsonUtils.getObjectReader()
-                        .forType(UserResource.class).readValue(dbUser.getScimData());
+    public List<Group> findGroupRefsForUser(String userId) {
+        return groupRepository.findAll().stream()
+                .map(this::mapToGroupResource)
+                .filter(g -> g.getMembers() != null && g.getMembers().stream()
+                        .anyMatch(m -> userId.equals(m.getValue())))
+                .map(g -> new Group()
+                        .setValue(g.getId())
+                        .setDisplay(g.getDisplayName())
+                        .setRef(g.getMeta().getLocation()))
+                .toList();
+    }
 
-                if (scimUser.getGroups() == null) {
-                    scimUser.setGroups(new ArrayList<>());
-                }
+    private GroupResource mapToGroupResource(GroupEntity dbGroup) {
+        return JsonUtils.getObjectReader()
+                .forType(GroupResource.class)
+                .readValue(dbGroup.getScimData());
+    }
 
-                if (remove) {
-                    scimUser.getGroups().removeIf(g -> g.getValue().equals(scimGroup.getId()));
-                } else {
-                    com.unboundid.scim2.common.types.Group groupRef = new com.unboundid.scim2.common.types.Group();
-                    groupRef.setValue(scimGroup.getId());
-                    groupRef.setDisplay(scimGroup.getDisplayName());
-                    groupRef.setRef(scimGroup.getMeta().getLocation());
-                    scimUser.getGroups().add(groupRef);
-                }
+    private void persist(GroupEntity entity, GroupResource group) {
+        entity.setScimData(JsonUtils.getObjectWriter().writeValueAsString(group));
+        groupRepository.save(entity);
+    }
 
-                scimUser.getMeta().setLastModified(Calendar.getInstance());
-
-                dbUser.setScimData(JsonUtils.getObjectWriter().writeValueAsString(scimUser));
-                userRepository.save(dbUser);
-                log.info("User {} erfolgreich mit Gruppen-Update synchronisiert", userId);
-
-            } catch (Exception e) {
-                log.error("Konnte User {} nicht synchronisieren", userId, e);
-                throw new RuntimeException("Konnte User nicht mit Gruppe aktualisieren", e);
-            }
-        });
+    private Meta createMeta(String id) {
+        Meta meta = new Meta();
+        meta.setResourceType("Group");
+        meta.setCreated(Calendar.getInstance());
+        meta.setLastModified(Calendar.getInstance());
+        meta.setLocation(URI.create(BASE_URL + id));
+        return meta;
     }
 }

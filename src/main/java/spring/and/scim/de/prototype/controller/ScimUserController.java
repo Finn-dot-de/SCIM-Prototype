@@ -1,5 +1,6 @@
 package spring.and.scim.de.prototype.controller;
 
+import com.unboundid.scim2.common.exceptions.BadRequestException;
 import com.unboundid.scim2.common.messages.ListResponse;
 import com.unboundid.scim2.common.messages.PatchRequest;
 import com.unboundid.scim2.common.types.UserResource;
@@ -105,7 +106,7 @@ public class ScimUserController {
     public ResponseEntity<Void> deleteUser(@PathVariable String id) {
 
         log.info("SCIM Delete User: {}", id);
-        
+
         scimUserService.deleteScimUser(id);
 
         return ResponseEntity.noContent().build();

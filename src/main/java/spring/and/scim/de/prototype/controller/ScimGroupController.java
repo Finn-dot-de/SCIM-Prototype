@@ -1,7 +1,9 @@
 package spring.and.scim.de.prototype.controller;
 
+import com.unboundid.scim2.common.messages.ListResponse;
 import com.unboundid.scim2.common.messages.PatchRequest;
 import com.unboundid.scim2.common.types.GroupResource;
+import com.unboundid.scim2.common.types.UserResource;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -71,5 +73,39 @@ public class ScimGroupController {
         return scimGroupService.patchGroup(id, patchRequest)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Gruppe löschen", description = "Löscht eine SCIM-Gruppe anhand seiner ID.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Löschung erfolgreich (Kein Inhalt)"),
+            @ApiResponse(responseCode = "404", description = "Gruppe nicht gefunden"),
+            @ApiResponse(responseCode = "400", description = "Ungültige Anfrage (z. B. fehlerhafte ID-Syntax)")
+    })
+    public ResponseEntity<Void> deleteUser(@PathVariable String id) {
+
+        log.info("SCIM Delete User: {}", id);
+
+        scimGroupService.deleteScimGroup(id);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping()
+    @Operation(summary = "Gruppen suchen & filtern", description = "SCIM-Filter")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Gruppen Filtern erfolgreich"),
+            @ApiResponse(responseCode = "404", description = "Gruppen mit Filter nicht gefunden"),
+            @ApiResponse(responseCode = "400", description = "Fehlerhafte Filter-Syntax")
+    })
+    public ResponseEntity<ListResponse<GroupResource>> searchUsers(
+            @RequestParam(required = false) String filter,
+            @RequestParam(required = false, defaultValue = "1") int startIndex,
+            @RequestParam(required = false, defaultValue = "100") int count) {
+
+        log.info("Suche Users. Filter: '{}', Start: {}, Count: {}", filter, startIndex, count);
+
+        ListResponse<GroupResource> response = scimGroupService.searchScimGroups(filter, startIndex, count);
+        return ResponseEntity.ok(response);
     }
 }

@@ -11,8 +11,11 @@ import com.unboundid.scim2.common.types.UserResource;
 import com.unboundid.scim2.common.utils.FilterEvaluator;
 import com.unboundid.scim2.common.utils.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import spring.and.scim.de.prototype.advise.UserNotFoundException;
 import spring.and.scim.de.prototype.entity.UserEntity;
 import spring.and.scim.de.prototype.repository.UserRepository;
 import tools.jackson.databind.JsonNode;
@@ -23,6 +26,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -123,8 +127,23 @@ public class ScimUserServiceImpl implements ScimUserService {
     @Transactional
     @Override
     public void deleteScimUser(String id) {
-        log.info("Delete User with id: {}", id);
-        userRepository.deleteUserEntityById(id);
+        log.info("Delete SCIM User with id: {}", id);
+
+        Pattern UUID_REGEX =
+                Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
+
+        boolean isValidUuid = UUID_REGEX.matcher(id).matches();
+        log.info("Is valid UUID? >>>>>>>>>>>>>>>>>>>>>>>>>>> {}", isValidUuid);
+
+        if (!isValidUuid) {
+            throw new ResponseStatusException(HttpStatusCode.valueOf(400) ,"User with id: " + id + " stimmt mit dem Format nicht überein");
+        }
+
+        if (userRepository.existsById(id)) {
+            userRepository.deleteById(id);
+        } else {
+            throw new UserNotFoundException("User with id: " + id + " not found");
+        }
     }
 
     @Override

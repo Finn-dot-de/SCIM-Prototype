@@ -1,0 +1,187 @@
+### SCIM 2.0 Prototyp — Demo-Ablauf
+
+@host = http://localhost:8080
+@scim = {{host}}/scim/v2
+
+
+### 1.1  Duplikat-Pruefung vor dem Anlegen — erwartet: totalResults = 0
+GET {{scim}}/Users?filter=userName eq "m.schneider@example.de"
+Accept: application/scim+json
+
+### 1.2  Benutzer anlegen — erwartet: 201 Created + Location-Header
+POST {{scim}}/Users
+Content-Type: application/scim+json
+
+< ./01-user-anlegen.json
+
+> {%
+    client.global.set("userId", response.body.id);
+    client.test("201 Created", () => client.assert(response.status === 201));
+    client.test("Location gesetzt", () => client.assert(response.headers.valueOf("Location") != null));
+%}
+
+### 1.3  Zweiten Benutzer anlegen — fuer die Filter-Demo spaeter
+POST {{scim}}/Users
+Content-Type: application/scim+json
+
+< ./02-user-anlegen-zweiter.json
+
+> {%
+    client.global.set("userId2", response.body.id);
+%}
+
+### 1.4  Denselben userName nochmal anlegen — erwartet: 409 Conflict
+POST {{scim}}/Users
+Content-Type: application/scim+json
+
+< ./01-user-anlegen.json
+
+> {%
+    client.test("409 Conflict", () => client.assert(response.status === 409));
+    client.test("scimType uniqueness", () => client.assert(response.body.scimType === "uniqueness"));
+%}
+
+
+###############################################################################
+# AKT 2 — Suchen und Filtern
+###############################################################################
+
+### 2.1  Alle Benutzer — ListResponse mit totalResults / itemsPerPage
+GET {{scim}}/Users
+Accept: application/scim+json
+
+### 2.2  Exakte Suche, wie sie der IdP zur Duplikat-Pruefung nutzt
+GET {{scim}}/Users?filter=userName eq "m.schneider@example.de"
+Accept: application/scim+json
+
+### 2.3  Zusammengesetzter Filter — beweist, dass der komplette SCIM-Filter
+GET {{scim}}/Users?filter=title co "Sachbearbeit" and active eq true
+Accept: application/scim+json
+
+### 2.4  Paginierung — itemsPerPage meldet die tatsaechlich gelieferte Anzahl
+GET {{scim}}/Users?startIndex=1&count=1
+Accept: application/scim+json
+
+### 3.1  Stand vor der Aenderung — meta.created und meta.lastModified merken
+GET {{scim}}/Users/{{userId}}
+Accept: application/scim+json
+
+### 3.2  Befoerderung: Titel, Vorname, zusaetzliche E-Mail und Referatswechsel
+PATCH {{scim}}/Users/{{userId}}
+Content-Type: application/scim+json
+
+< ./03-user-patch-befoerderung.json
+
+> {%
+    client.test("200 OK", () => client.assert(response.status === 200));
+    client.test("Titel geaendert", () => client.assert(response.body.title === "Referatsleiterin"));
+    client.test("userName unveraendert", () =>
+        client.assert(response.body.userName === "m.schneider@example.de"));
+%}
+
+### 3.3  Kontrolle: meta.created ist unveraendert, meta.lastModified ist neu.
+GET {{scim}}/Users/{{userId}}
+Accept: application/scim+json
+
+
+###############################################################################
+# AKT 4 — Gruppen
+###############################################################################
+
+### 4.1  Gruppe anlegen (mit Umlaut im Namen — zeigt UTF-8 durch JSONB)
+POST {{scim}}/Groups
+Content-Type: application/scim+json
+
+< ./05-gruppe-anlegen.json
+
+> {%
+    client.global.set("groupId", response.body.id);
+%}
+
+### 4.2  Benutzer der Gruppe hinzufuegen — Standard-Operation beim Provisioning
+PATCH {{scim}}/Groups/{{groupId}}
+Content-Type: application/scim+json
+
+{
+  "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+  "Operations": [
+    {
+      "op": "add",
+      "path": "members",
+      "value": [
+        {
+          "value": "{{userId}}",
+          "display": "Maria Schneider",
+          "type": "User"
+        },
+        {
+          "value": "{{userId2}}",
+          "display": "Thomas Krause",
+          "type": "User"
+        }
+      ]
+    }
+  ]
+}
+
+### 4.3  Gruppe lesen
+GET {{scim}}/Groups/{{groupId}}
+Accept: application/scim+json
+
+### 4.4  Gleicher displayName nochmal — erwartet: 409, wie beim Benutzer.
+POST {{scim}}/Groups
+Content-Type: application/scim+json
+
+< ./05-gruppe-anlegen.json
+
+### 5.1  Deaktivieren statt loeschen — die haeufigste Operation ueberhaupt.
+PATCH {{scim}}/Users/{{userId2}}
+Content-Type: application/scim+json
+
+< ./04-user-patch-deaktivieren.json
+
+> {%
+    client.test("active ist false", () => client.assert(response.body.active === false));
+%}
+
+### 5.2  Endgueltig loeschen — erwartet: 204 No Content ohne Body
+DELETE {{scim}}/Users/{{userId2}}
+
+### 5.3  Geloeschten Benutzer lesen — erwartet: 404 im SCIM-Fehlerformat
+GET {{scim}}/Users/{{userId2}}
+Accept: application/scim+json
+
+
+###############################################################################
+# AKT 6 — Fehlerformat
+###############################################################################
+
+### 6.1  Pflichtfeld userName fehlt — 400 mit scimType "invalidValue"
+POST {{scim}}/Users
+Content-Type: application/scim+json
+
+< ./90-fehler-user-ohne-username.json
+
+### 6.2  Kaputte Filter-Syntax — 400 mit scimType "invalidFilter".
+GET {{scim}}/Users?filter=userName ==== "x"
+Accept: application/scim+json
+
+### 6.3  Unbekannte, aber gueltige ID — 404 als SCIM-ErrorResponse
+GET {{scim}}/Users/00000000-0000-0000-0000-000000000000
+Accept: application/scim+json
+
+### 6.4  ID ist keine UUID — 400 statt Datenbankfehler
+GET {{scim}}/Users/keine-gueltige-id
+Accept: application/scim+json
+
+### 6.5  Nicht erlaubte Methode — 405
+PUT {{scim}}/Users
+Content-Type: application/scim+json
+
+{}
+
+### 7.1  Benutzer loeschen
+DELETE {{scim}}/Users/{{userId}}
+
+### 7.2  Gruppe loeschen
+DELETE {{scim}}/Groups/{{groupId}}

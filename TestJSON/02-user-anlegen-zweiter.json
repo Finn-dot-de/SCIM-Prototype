@@ -1,0 +1,21 @@
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:User"
+  ],
+  "externalId": "hr-personalnr-98766",
+  "userName": "t.krause@example.de",
+  "name": {
+    "familyName": "Krause",
+    "givenName": "Thomas"
+  },
+  "displayName": "Thomas Krause",
+  "title": "Sachbearbeiter",
+  "active": true,
+  "emails": [
+    {
+      "value": "t.krause@example.de",
+      "type": "work",
+      "primary": true
+    }
+  ]
+}

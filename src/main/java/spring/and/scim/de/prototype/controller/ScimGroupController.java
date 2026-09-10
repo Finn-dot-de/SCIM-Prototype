@@ -3,109 +3,101 @@ package spring.and.scim.de.prototype.controller;
 import com.unboundid.scim2.common.messages.ListResponse;
 import com.unboundid.scim2.common.messages.PatchRequest;
 import com.unboundid.scim2.common.types.GroupResource;
-import com.unboundid.scim2.common.types.UserResource;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.Nullable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import spring.and.scim.de.prototype.service.ScimGroupServiceImpl;
-import spring.and.scim.de.prototype.advise.UserNotFoundException;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+import spring.and.scim.de.prototype.scim.ScimMediaType;
+import spring.and.scim.de.prototype.scim.ScimPaths;
+import spring.and.scim.de.prototype.service.ScimGroupService;
 
-@Slf4j
+/**
+ * SCIM-2.0-Endpunkt fuer Gruppen. Aufbau wie
+ * {@link ScimUserController} — die Ablauflogik liegt im Service.
+ */
 @RestController
-@RequestMapping(value = "/scim/v2/Groups", produces = "application/scim+json")
+@RequestMapping(value = ScimPaths.GROUPS, produces = ScimMediaType.SCIM_JSON_VALUE)
 @Tag(name = "SCIM 2.0 Group Provisioning", description = "SCIM Group Prototype")
+@RequiredArgsConstructor
 public class ScimGroupController {
 
-    private final ScimGroupServiceImpl scimGroupService;
+    private final ScimGroupService groupService;
 
-    public ScimGroupController(ScimGroupServiceImpl scimGroupService) {
-        this.scimGroupService = scimGroupService;
-    }
-
-    @PostMapping(consumes = "application/scim+json")
-    @Operation(summary = "Neuen Gruppe anlegen", description = "Speichert eine SCIM-Gruppe")
+    @PostMapping(consumes = ScimMediaType.SCIM_JSON_VALUE)
+    @Operation(summary = "Neue Gruppe anlegen", description = "Speichert eine SCIM-Gruppe.")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Benutzer erfolgreich angelegt",
+            @ApiResponse(responseCode = "201", description = "Gruppe erfolgreich angelegt",
                     content = @Content(schema = @Schema(implementation = GroupResource.class))),
-            @ApiResponse(responseCode = "400", description = "Ungültiges Format")
+            @ApiResponse(responseCode = "400", description = "Ungültiges Format"),
+            @ApiResponse(responseCode = "409", description = "displayName bereits vergeben")
     })
-    public ResponseEntity<GroupResource> createGroup(@RequestBody GroupResource incomingGroup) {
-        GroupResource createdGroup = scimGroupService.createGroup(incomingGroup);
-        return ResponseEntity
-                .created(createdGroup.getMeta().getLocation())
-                .body(createdGroup);
+    public ResponseEntity<GroupResource> createGroup(@RequestBody GroupResource group) {
+        GroupResource created = groupService.create(group);
+        return ResponseEntity.created(created.getMeta().getLocation()).body(created);
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Gespeicherte Gruppen abrufen")
+    @Operation(summary = "Gespeicherte Gruppe abrufen")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Gruppe gefunden"),
-            @ApiResponse(responseCode = "404", description = "Gruppe nicht gefunden", content = @Content)
+            @ApiResponse(responseCode = "404", description = "Gruppe nicht gefunden",
+                    content = @Content)
     })
-    public ResponseEntity<GroupResource> getGroup(@PathVariable String id) {
-        return scimGroupService.getGroup(id)
-                .map(ResponseEntity::ok)
-                .orElseThrow(() -> new UserNotFoundException("Die Gruppe mit der ID " + id + " existiert nicht."));
+    public GroupResource getGroup(@PathVariable String id) {
+        return groupService.findById(id);
     }
 
-    @PatchMapping(value = "/{id}", consumes = "application/scim+json")
-    @Operation(summary = "Gruppe aktualisieren", description = "Führt partielle Updates aus")
+    @GetMapping
+    @Operation(summary = "Gruppen suchen & filtern", description = "SCIM-Filter")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Suche erfolgreich"),
+            @ApiResponse(responseCode = "400", description = "Fehlerhafte Filter-Syntax")
+    })
+    public ListResponse<GroupResource> searchGroups(
+            @RequestParam(required = false) @Nullable String filter,
+            @RequestParam(defaultValue = "1") int startIndex,
+            @RequestParam(defaultValue = "100") int count) {
+
+        return groupService.search(filter, startIndex, count);
+    }
+
+    @PatchMapping(value = "/{id}", consumes = ScimMediaType.SCIM_JSON_VALUE)
+    @Operation(summary = "Gruppe aktualisieren", description = "Führt partielle Updates aus.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Update erfolgreich"),
-            @ApiResponse(responseCode = "404", description = "Gruppe nicht gefunden"),
-            @ApiResponse(responseCode = "400", description = "Fehlerhafte Patch-Syntax")
+            @ApiResponse(responseCode = "400", description = "Fehlerhafte Patch-Syntax"),
+            @ApiResponse(responseCode = "404", description = "Gruppe nicht gefunden")
     })
-    public ResponseEntity<GroupResource> patchUser(
-            @PathVariable String id,
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    content = @Content(schema = @Schema(implementation = Object.class))
-            )
-            @RequestBody PatchRequest patchRequest) {
-
-        log.info("Eingehender PATCH-Request für User ID: {}", id);
-
-        return scimGroupService.patchGroup(id, patchRequest)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    public GroupResource patchGroup(@PathVariable String id,
+                                    @RequestBody PatchRequest patchRequest) {
+        return groupService.patch(id, patchRequest);
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Gruppe löschen", description = "Löscht eine SCIM-Gruppe anhand seiner ID.")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Gruppe löschen", description = "Löscht eine SCIM-Gruppe anhand ihrer ID.")
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Löschung erfolgreich (Kein Inhalt)"),
-            @ApiResponse(responseCode = "404", description = "Gruppe nicht gefunden"),
-            @ApiResponse(responseCode = "400", description = "Ungültige Anfrage (z. B. fehlerhafte ID-Syntax)")
+            @ApiResponse(responseCode = "204", description = "Löschung erfolgreich"),
+            @ApiResponse(responseCode = "400", description = "Ungültige ID-Syntax"),
+            @ApiResponse(responseCode = "404", description = "Gruppe nicht gefunden")
     })
-    public ResponseEntity<Void> deleteUser(@PathVariable String id) {
-
-        log.info("SCIM Delete User: {}", id);
-
-        scimGroupService.deleteScimGroup(id);
-
-        return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping()
-    @Operation(summary = "Gruppen suchen & filtern", description = "SCIM-Filter")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Gruppen Filtern erfolgreich"),
-            @ApiResponse(responseCode = "404", description = "Gruppen mit Filter nicht gefunden"),
-            @ApiResponse(responseCode = "400", description = "Fehlerhafte Filter-Syntax")
-    })
-    public ResponseEntity<ListResponse<GroupResource>> searchUsers(
-            @RequestParam(required = false) String filter,
-            @RequestParam(required = false, defaultValue = "1") int startIndex,
-            @RequestParam(required = false, defaultValue = "100") int count) {
-
-        log.info("Suche Users. Filter: '{}', Start: {}, Count: {}", filter, startIndex, count);
-
-        ListResponse<GroupResource> response = scimGroupService.searchScimGroups(filter, startIndex, count);
-        return ResponseEntity.ok(response);
+    public void deleteGroup(@PathVariable String id) {
+        groupService.delete(id);
     }
 }

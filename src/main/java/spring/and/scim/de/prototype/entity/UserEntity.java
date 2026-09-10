@@ -1,36 +1,18 @@
 package spring.and.scim.de.prototype.entity;
 
+import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.Getter;
-import lombok.Setter;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
+/**
+ * SCIM-User. Traegt nur noch die Schema-Abweichung gegenueber
+ * {@link ScimEntity}: der Eindeutigkeitsschluessel ist der {@code userName}.
+ */
 @Entity
 @Table(name = "scim_users")
-@Setter
-@Getter
-public class UserEntity {
-
-    @Id
-    private String id;
-
-    @Column(unique = true, nullable = false)
-    private String userName;
-    
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb")
-    private String scimData;
-
-    public UserEntity(String newId, String userName, String scimData) {
-        this.id = newId;
-        this.userName = userName;
-        this.scimData = scimData;
-    }
-
-    public UserEntity() {
-    }
+@AttributeOverride(
+        name = "businessKey",
+        column = @Column(name = "user_name", nullable = false, unique = true))
+public class UserEntity extends ScimEntity {
 }

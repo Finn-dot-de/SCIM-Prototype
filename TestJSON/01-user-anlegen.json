@@ -1,0 +1,62 @@
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:User",
+    "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+  ],
+  "externalId": "hr-personalnr-98765",
+  "userName": "m.schneider@example.de",
+  "name": {
+    "formatted": "Maria Schneider",
+    "familyName": "Schneider",
+    "givenName": "Maria"
+  },
+  "displayName": "Maria Schneider",
+  "title": "Sachbearbeiterin",
+  "userType": "Employee",
+  "preferredLanguage": "de-DE",
+  "locale": "de_DE",
+  "timezone": "Europe/Berlin",
+  "active": true,
+  "emails": [
+    {
+      "value": "m.schneider@example.de",
+      "display": "Dienstlich",
+      "type": "work",
+      "primary": true
+    }
+  ],
+  "phoneNumbers": [
+    {
+      "value": "+49-228-123456",
+      "display": "Dienstlich",
+      "type": "work",
+      "primary": true
+    }
+  ],
+  "addresses": [
+    {
+      "formatted": "Musterstraße 1\n53111 Bonn\nGermany",
+      "streetAddress": "Musterstraße 1",
+      "locality": "Bonn",
+      "region": "NRW",
+      "postalCode": "53111",
+      "country": "Germany",
+      "type": "work",
+      "primary": true
+    }
+  ],
+  "roles": [
+    {
+      "value": "sachbearbeitung",
+      "display": "Sachbearbeitung",
+      "type": "fachrolle",
+      "primary": true
+    }
+  ],
+  "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+    "employeeNumber": "98765",
+    "department": "Referat 42",
+    "organization": "Beispielbehörde",
+    "costCenter": "KST-4711"
+  }
+}

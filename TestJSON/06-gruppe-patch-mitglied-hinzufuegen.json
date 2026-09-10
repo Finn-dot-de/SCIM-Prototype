@@ -1,0 +1,18 @@
+{
+  "schemas": [
+    "urn:ietf:params:scim:api:messages:2.0:PatchOp"
+  ],
+  "Operations": [
+    {
+      "op": "add",
+      "path": "members",
+      "value": [
+        {
+          "value": "1234566",
+          "display": "Maria Schneider",
+          "type": "User"
+        }
+      ]
+    }
+  ]
+}
